@@ -596,7 +596,27 @@
 
   <!-- Scrollable Content -->
   <div class="glowing-frame" style="flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; background: transparent; display: flex; flex-direction: column;">
-    <div style="flex: 1 0 auto; width: 100%; padding-bottom: 2rem;">
+    
+    {% if ctf_paused() %}
+    <div class="alert alert-info alert-dismissible text-center mb-0 rounded-0 border-0 shadow-sm fw-bold" role="alert" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-bottom: 1px solid rgba(56, 189, 248, 0.3) !important;">
+        <span><i class="fas fa-pause-circle me-2"></i>CTF is paused</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: invert(1); opacity: 0.5;"></button>
+    </div>
+    {% endif %}
+    {% if ctf_ended() %}
+    <div class="alert alert-warning alert-dismissible text-center mb-0 rounded-0 border-0 shadow-sm fw-bold" role="alert" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-bottom: 1px solid rgba(245, 158, 11, 0.3) !important;">
+        <span><i class="fas fa-exclamation-triangle me-2"></i>CTF has ended</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: invert(1); opacity: 0.5;"></button>
+    </div>
+    {% endif %}
+    {% if not ctf_started() %}
+    <div class="alert alert-info alert-dismissible text-center mb-0 rounded-0 border-0 shadow-sm fw-bold" role="alert" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-bottom: 1px solid rgba(59, 130, 246, 0.3) !important;">
+        <span><i class="fas fa-clock me-2"></i>CTF has not started yet</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: invert(1); opacity: 0.5;"></button>
+    </div>
+    {% endif %}
+
+    <div style="flex: 1 0 auto; width: 100%; padding-bottom: 2rem; padding-top: 1rem;">
       {% block content %}
       {% endblock %}
     </div>
