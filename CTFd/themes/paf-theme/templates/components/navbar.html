@@ -15,8 +15,10 @@
         <img src="{{ url_for('views.files', path=Configs.ctf_logo) }}" class="breathing-logo" style="height: 48px; width: auto; object-fit: contain;">
       {% endif %}
       <span class="fw-bold sidebar-brand-text" style="font-size: 1.2rem; letter-spacing: 0.5px; line-height: 1.2;">
-        JuiceShop Security<br>
-        <span style="color: #38bdf8; font-size: 0.9rem;">CTF 2026</span>
+        {{ Configs.ctf_name }}<br>
+        {% if Configs.ctf_description %}
+        <span style="color: #38bdf8; font-size: 0.9rem;">{{ Configs.ctf_description }}</span>
+        {% endif %}
       </span>
     </a>
     
