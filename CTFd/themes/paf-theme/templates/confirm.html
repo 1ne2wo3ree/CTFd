@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="pafms-card w-100 p-4 p-md-5 rounded-4 shadow-lg" style="max-width: 480px; border: 1px solid rgba(59, 130, 246, 0.3) !important; box-shadow: 0 0 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(59, 130, 246, 0.15) !important;">
+    <!-- Tactical Branding Header -->
+    <div class="text-center mb-4 pb-3" style="border-bottom: 1px dashed rgba(150,150,150,0.25);">
+      <div class="mb-3">
+        <img src="/files/aab6223e4629c082f73cbcfd41fd16d4/login.png" alt="Philippine Air Force Logo" style="max-height: 140px; width: auto; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));">
+      </div>
+      <h4 class="fw-bolder mb-1" style="letter-spacing: 0.05em;">PHILIPPINE AIR FORCE</h4>
+      <div class="small fw-bold text-primary text-uppercase" style="letter-spacing: 2px; font-size: 0.75rem;">
+        CYBER SECURITY RANGE
+      </div>
+    </div>
+
+    <h5 class="text-center fw-bold mb-4 opacity-90">{% trans %}Confirm Account{% endtrans %}</h5>
+
+    {% include "components/errors.html" %}
+
+    {% if request.args.get('flow') == "init" %}
+      <p class="text-center small mb-3 opacity-75" style="line-height: 1.5;">
+        {% trans %}To send a confirmation email to your email address, please click the button below.{% endtrans %}
+      </p>
+      <p class="text-center small mb-3 opacity-75" style="line-height: 1.5;">
+        {% trans %}Please click the link in that email to confirm your account.{% endtrans %}
+      </p>
+      <p class="text-center small mb-4 opacity-75" style="line-height: 1.5;">
+        {% trans %}If the email doesn’t arrive, check your spam folder or contact an administrator to manually verify your account.{% endtrans %}
+      </p>
+    {% else %}
+      <p class="text-center small mb-3 opacity-75" style="line-height: 1.5;">
+        {% trans %}We've sent a confirmation email to your email address.{% endtrans %}
+      </p>
+      <p class="text-center small mb-3 opacity-75" style="line-height: 1.5;">
+        {% trans %}Please click the link in that email to confirm your account.{% endtrans %}
+      </p>
+      <p class="text-center small mb-4 opacity-75" style="line-height: 1.5;">
+        {% trans %}If the email doesn’t arrive, check your spam folder or contact an administrator to manually verify your account.{% endtrans %}
+      </p>
+    {% endif %}
+
+    {% with form = Forms.auth.ConfirmForm() %}
+      <form method="POST" action="{{ url_for('auth.confirm') }}">
+        <div class="d-flex flex-column gap-3">
+          {{ form.submit(class="btn btn-primary shadow-sm w-100 py-2 fw-bold text-uppercase", style="letter-spacing: 1px; border-radius: 0.5rem;") }}
+          <a href="{{ url_for('views.settings') }}" class="btn btn-secondary w-100 py-2 border border-light border-opacity-25 text-center text-decoration-none fw-bold text-uppercase" style="background: rgba(55,65,81,0.5); color: #e5e7eb; letter-spacing: 1px; border-radius: 0.5rem; font-size: 0.85rem;">
+            {% trans %}Change Email Address{% endtrans %}
+          </a>
+        </div>
+        {{ form.nonce() }}
+      </form>
+    {% endwith %}
+  </div>
+</div>
+{% endblock %}

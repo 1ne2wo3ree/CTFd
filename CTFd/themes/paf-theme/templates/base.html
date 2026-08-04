@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+<head>
+  <title>{{ title or Configs.ctf_name }}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ Configs.ctf_small_icon }}" type="image/x-icon">
+
+  <style>
+    /* Custom Registration Fields Styling */
+    .custom-fields-wrapper .form-label {
+      color: white !important;
+      font-weight: 700 !important;
+      font-size: 0.75rem !important;
+      text-transform: uppercase !important;
+      margin-bottom: 0.25rem !important;
+    }
+    .custom-fields-wrapper .form-control, .custom-fields-wrapper .form-select {
+      background: #1e293b !important;
+      border: 1px solid rgba(59, 130, 246, 0.5) !important;
+      color: white !important;
+      padding: 10px 14px !important;
+      border-radius: 6px !important;
+    }
+    .custom-fields-wrapper .text-muted {
+      color: rgba(255,255,255,0.6) !important;
+    }
+    .custom-fields-wrapper .border {
+      border-color: rgba(59, 130, 246, 0.3) !important;
+      border-radius: 6px !important;
+    }
+
+    /* Dynamic Background Engine */
+    #dynamic-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
+      overflow: hidden;
+    }
+    
+    html[data-bs-theme="dark"] #dynamic-bg {
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    }
+    html[data-bs-theme="light"] #dynamic-bg {
+      background: radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%);
+    }
+    
+    .bg-cursor-glow {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(56, 189, 248, 0.15), transparent 40%);
+      z-index: 1;
+    }
+
+    /* Make body background transparent so we can see particles */
+    body, html[data-bs-theme="dark"] body, html[data-bs-theme="light"] body {
+      background-color: transparent !important;
+      background: transparent !important;
+    }
+
+    /* Modal overrides to ensure they look good on top of particles */
+    .auth-modal-content {
+      background: rgba(17, 24, 39, 0.95) !important;
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    html[data-bs-theme="light"] .auth-modal-content {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid rgba(148, 163, 184, 0.4) !important;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    /* Fix text colors in light mode modals */
+    html[data-bs-theme="light"] .auth-modal-content .text-white {
+      color: #0f172a !important;
+    }
+    html[data-bs-theme="light"] .auth-modal-content .form-label {
+      color: #334155 !important;
+    }
+    html[data-bs-theme="light"] .auth-modal-content .form-control {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    /* Default & Dark Mode Theme Overrides - PAF Blue Palette */
+    body, html[data-bs-theme="dark"] body {
+      background-color: #0b1120 !important; /* Deep Navy Background */
+      color: #f1f5f9 !important;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      height: 100vh !important;
+      width: 100% !important;
+      display: flex;
+      flex-direction: row; /* Split-Pane Layout */
+    }
+    
+    /* Responsive Auto-Zoom (Denser UI for larger content fitting) */
+    html { font-size: 14.5px !important; }
+    @media (max-width: 1400px) { html { font-size: 13.5px !important; } }
+    @media (max-width: 1200px) { html { font-size: 12.5px !important; } }
+    
+    /* Light Mode Theme Overrides - PAF Blue Palette */
+    html[data-bs-theme="light"] body {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+
+    /* Cards & Containers */
+    .pafms-card, .card {
+      border-radius: 1rem;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    html[data-bs-theme="dark"] .pafms-card,
+    html[data-bs-theme="dark"] .card {
+      background-color: rgba(31, 41, 55, 0.45) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+      color: #e5e7eb !important;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+    html[data-bs-theme="light"] .pafms-card,
+    html[data-bs-theme="light"] .card {
+      background: rgba(248, 250, 252, 0.95) !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+      color: #0f172a !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    }
+    /* Force override any lingering dark inline styles in custom markdown */
+    html[data-bs-theme="light"] .pafms-card[style],
+    html[data-bs-theme="light"] .card[style] {
+      background: rgba(248, 250, 252, 0.95) !important;
+    }
+    /* Automatically fix hardcoded light/white text when in Light Mode */
+    html[data-bs-theme="light"] .pafms-card .text-light,
+    html[data-bs-theme="light"] .pafms-card .text-white,
+    html[data-bs-theme="light"] .card .text-light,
+    html[data-bs-theme="light"] .card .text-white,
+    html[data-bs-theme="light"] .form-label,
+    html[data-bs-theme="light"] .text-light:not(.btn):not(.btn *):not(.badge):not(.badge *),
+    html[data-bs-theme="light"] .text-white:not(.btn):not(.btn *):not(.badge):not(.badge *) {
+      color: #0f172a !important;
+    }
+    html[data-bs-theme="light"] .text-muted {
+      color: #64748b !important;
+    }
+    html[data-bs-theme="light"] h1,
+    html[data-bs-theme="light"] h2,
+    html[data-bs-theme="light"] h3,
+    html[data-bs-theme="light"] h4,
+    html[data-bs-theme="light"] h5,
+    html[data-bs-theme="light"] h6 {
+      color: #0f172a !important;
+    }
+    
+    /* Auth Modal Responsive Background */
+    .auth-modal-content {
+      background: rgba(17, 24, 39, 0.95);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    html[data-bs-theme="light"] .auth-modal-content {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    /* Custom Pages & Landing Page Light Mode Fixes */
+    html[data-bs-theme="light"] .landing-title {
+      background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+    html[data-bs-theme="light"] .landing-subtitle {
+      color: #475569 !important;
+    }
+    html[data-bs-theme="light"] [style*="rgba(15, 23, 42"],
+    html[data-bs-theme="light"] [style*="rgba(30, 41, 59"] {
+      background: rgba(248, 250, 252, 0.95) !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-bs-theme="light"] .media-placeholder {
+      background: rgba(255, 255, 255, 0.5) !important;
+      border-color: rgba(0, 0, 0, 0.2) !important;
+      color: #475569 !important;
+    }
+    html[data-bs-theme="light"] .accordion-button.text-light {
+      color: #0f172a !important;
+    }
+
+    /* Navbar styling (Frosted Glass / Glassmorphism in both modes) */
+    .navbar {
+      background-color: rgba(15, 23, 42, 0.82) !important;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.25) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+    html[data-bs-theme="light"] .navbar {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+    }
+    html[data-bs-theme="light"] .navbar,
+    html[data-bs-theme="light"] .navbar .navbar-brand,
+    html[data-bs-theme="light"] .navbar .nav-link,
+    html[data-bs-theme="light"] .navbar .navbar-text,
+    html[data-bs-theme="light"] .navbar i,
+    html[data-bs-theme="light"] .navbar span:not(.badge),
+    html[data-bs-theme="light"] .navbar a:not(.btn),
+    html[data-bs-theme="light"] .navbar .dropdown-item {
+      color: #0f172a !important;
+    }
+    html[data-bs-theme="light"] .navbar .nav-link:hover,
+    html[data-bs-theme="light"] .navbar a:hover {
+      color: #3b82f6 !important;
+    }
+
+    /* Tactical Navigation Links & Command Buttons */
+    .tactical-nav-link {
+      font-weight: 600 !important;
+      font-size: 0.85rem !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      color: #94a3b8 !important;
+      transition: all 0.2s ease !important;
+      border: 1px solid transparent !important;
+      border-radius: 0.5rem !important;
+    }
+    .tactical-nav-link:hover, .tactical-nav-link:focus {
+      color: #60a5fa !important;
+      background: rgba(59, 130, 246, 0.12) !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+      transform: translateY(-1px);
+    }
+    html[data-bs-theme="light"] .tactical-nav-link {
+      color: #475569 !important;
+    }
+    html[data-bs-theme="light"] .tactical-nav-link:hover {
+      color: #2563eb !important;
+      background: rgba(37, 99, 235, 0.08) !important;
+      border-color: rgba(37, 99, 235, 0.25) !important;
+    }
+
+    .tactical-nav-link-primary {
+      color: #38bdf8 !important;
+      background: rgba(56, 189, 248, 0.12) !important;
+      border: 1px solid rgba(56, 189, 248, 0.4) !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.15) !important;
+      font-weight: 700 !important;
+    }
+    .tactical-nav-link-primary:hover {
+      background: rgba(56, 189, 248, 0.22) !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.3) !important;
+      transform: translateY(-1px);
+    }
+    html[data-bs-theme="light"] .tactical-nav-link-primary {
+      color: #0284c7 !important;
+      background: rgba(2, 132, 199, 0.1) !important;
+      border-color: rgba(2, 132, 199, 0.3) !important;
+    }
+
+    .tactical-nav-link-danger {
+      color: #f87171 !important;
+      background: rgba(239, 68, 68, 0.1) !important;
+      border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    }
+    .tactical-nav-link-danger:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: #f87171 !important;
+      color: #ffffff !important;
+    }
+
+    .tactical-tool-btn {
+      width: 36px !important;
+      height: 36px !important;
+      padding: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 0.5rem !important;
+      background: rgba(150, 150, 150, 0.1) !important;
+      border: 1px solid rgba(150, 150, 150, 0.2) !important;
+      color: #94a3b8 !important;
+      transition: all 0.2s ease !important;
+    }
+    .tactical-tool-btn:hover {
+      color: #38bdf8 !important;
+      border-color: #38bdf8 !important;
+      background: rgba(56, 189, 248, 0.15) !important;
+      transform: rotate(15deg);
+    }
+    html[data-bs-theme="light"] .tactical-tool-btn {
+      color: #475569 !important;
+      background: rgba(0, 0, 0, 0.05) !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+    }
+
+    /* Tactical Challenge Cards & Category Headers */
+    .tactical-challenge-card {
+      border-radius: 0.75rem !important;
+      transition: all 0.2s ease !important;
+      transform: translateZ(0);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    html[data-bs-theme="dark"] .tactical-challenge-card {
+      background: rgba(31, 41, 55, 0.45) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      color: #e5e7eb !important;
+    }
+    html[data-bs-theme="light"] .tactical-challenge-card {
+      background: rgba(255, 255, 255, 0.60) !important;
+      border: 1px solid rgba(0, 0, 0, 0.15) !important;
+      color: #0f172a !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .tactical-challenge-card:hover {
+      transform: translateY(-4px) translateZ(0) !important;
+      border-color: #3b82f6 !important;
+      box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4) !important;
+    }
+    .tactical-challenge-card.challenge-solved {
+      border-color: rgba(16, 185, 129, 0.5) !important;
+    }
+    .tactical-challenge-card.challenge-solved:hover {
+      border-color: #10b981 !important;
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    /* Category Headers */
+    .tactical-category-header {
+      border-left: 4px solid #3b82f6 !important;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    html[data-bs-theme="dark"] .tactical-category-header {
+      background: rgba(30, 41, 59, 0.60) !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      color: #f8fafc !important;
+    }
+    html[data-bs-theme="light"] .tactical-category-header {
+      background: rgba(255, 255, 255, 0.80) !important;
+      border: 1px solid rgba(0, 0, 0, 0.10) !important;
+      color: #0f172a !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .tactical-category-header:hover {
+      border-left-color: #60a5fa !important;
+      background: rgba(59, 130, 246, 0.12) !important;
+      transform: translateX(2px);
+    }
+
+    /* Dashboard Stat Boxes */
+    .tactical-stat-box {
+      border-radius: 0.75rem !important;
+      transition: all 0.2s ease !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    html[data-bs-theme="dark"] .tactical-stat-box {
+      background: rgba(30, 41, 59, 0.60) !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      color: #f8fafc !important;
+    }
+    html[data-bs-theme="light"] .tactical-stat-box {
+      background: rgba(255, 255, 255, 0.80) !important;
+      border: 1px solid rgba(0, 0, 0, 0.10) !important;
+      color: #0f172a !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .tactical-stat-box:hover {
+      transform: translateY(-2px);
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Form controls & Buttons */
+    html[data-bs-theme="dark"] .form-control {
+      background-color: rgba(55, 65, 81, 0.5) !important;
+      border: 1px solid #4b5563 !important;
+      color: #ffffff !important;
+    }
+    html[data-bs-theme="light"] .form-control {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    .form-control:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+    }
+    .btn-primary {
+      background: linear-gradient(to bottom, #3b82f6, #1d4ed8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: #ffffff !important;
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+    .jumbotron {
+      background-color: transparent !important;
+      padding-top: 2rem;
+      padding-bottom: 1rem;
+    }
+    /* Ensure Alpine.js x-show and x-cloak overrides any Bootstrap display classes */
+    [x-cloak], [style*="display: none"], [style*="display:none"] {
+      display: none !important;
+    }
+
+    /* Tactical Modal (Reduced Size & Glassmorphism) */
+    #challenge-window .modal-dialog {
+      max-width: 620px !important;
+      margin: 2rem auto !important;
+    }
+    .tactical-modal-content {
+      border-radius: 1rem !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.7), 0 0 15px rgba(59, 130, 246, 0.2) !important;
+    }
+    html[data-bs-theme="dark"] .tactical-modal-content {
+      background: rgba(17, 24, 39, 0.88) !important;
+      border: 1px solid rgba(59, 130, 246, 0.35) !important;
+      color: #e5e7eb !important;
+    }
+    html[data-bs-theme="light"] .tactical-modal-content {
+      background: rgba(255, 255, 255, 0.92) !important;
+      border: 1px solid rgba(59, 130, 246, 0.35) !important;
+      color: #0f172a !important;
+    }
+    .tactical-modal-content .nav-tabs {
+      border-bottom: 1px solid rgba(150, 150, 150, 0.2) !important;
+      gap: 0.5rem;
+      padding: 0 0.5rem;
+    }
+    .tactical-modal-content .nav-link {
+      color: #64748b !important;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: 1px solid transparent !important;
+      border-radius: 6px 6px 0 0 !important;
+      padding: 0.5rem 1rem !important;
+      transition: all 0.2s ease !important;
+    }
+    .tactical-modal-content .nav-link:hover {
+      background: rgba(150, 150, 150, 0.1) !important;
+      color: #94a3b8 !important;
+    }
+    .tactical-modal-content .nav-link.active {
+      background: rgba(59, 130, 246, 0.15) !important;
+      color: #38bdf8 !important;
+      border-color: rgba(59, 130, 246, 0.4) rgba(59, 130, 246, 0.4) transparent rgba(59, 130, 246, 0.4) !important;
+      box-shadow: 0 -3px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Telemetry Module Accent Left-Bars */
+    .stat-box-amber { border-left: 4px solid #f59e0b !important; border-bottom: none !important; }
+    .stat-box-cyan { border-left: 4px solid #38bdf8 !important; border-bottom: none !important; }
+    .stat-box-emerald { border-left: 4px solid #10b981 !important; border-bottom: none !important; }
+    .stat-box-purple { border-left: 4px solid #c084fc !important; border-bottom: none !important; }
+
+    /* Secure Command Terminal Input */
+    .tactical-console-input {
+      font-family: monospace, consolas, 'Courier New' !important;
+      font-size: 0.95rem !important;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease !important;
+    }
+    html[data-bs-theme="dark"] .tactical-console-input {
+      background: rgba(15, 23, 42, 0.75) !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    }
+    html[data-bs-theme="light"] .tactical-console-input {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+      border: 1px solid #94a3b8 !important;
+    }
+    .tactical-console-input:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4) !important;
+    }
+
+    /* Encrypted Intelligence Hint Lockers */
+    .tactical-hint-box details {
+      background: rgba(150, 150, 150, 0.08);
+      border: 1px solid rgba(150, 150, 150, 0.25);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      transition: all 0.2s ease;
+    }
+    .tactical-hint-box details:hover {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .tactical-hint-box summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: #f59e0b;
+      outline: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* Sci-Fi Glowing Frame for Main Content */
+    .glowing-frame {
+      margin: 0.5rem;
+      margin-left: 0.25rem;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 0.75rem;
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.05);
+      transition: all 0.3s ease;
+    }
+    html[data-bs-theme="light"] .glowing-frame {
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+  </style>
+
+  {{ meta | safe }}
+
+  {% block stylesheets %}
+    {{ Assets.css("assets/scss/main.scss") }}
+  {% endblock %}
+
+  {{ Plugins.styles }}
+
+  {{ Assets.js("assets/js/color_mode_switcher.js", type=None) }}
+
+  <script type="text/javascript">
+      window.init = {
+          'urlRoot': "{{ request.script_root }}",
+          'csrfNonce': "{{ Session.nonce }}",
+          'userMode': "{{ Configs.user_mode }}",
+          'userId': {{ Session.id }},
+          'userName': {{ User.name | tojson }},
+          'userEmail': {{ User.email | tojson }},
+          'userVerified': {{ User.verified | tojson }},
+          'teamId': {{ Team.id | tojson }},
+          'teamName': {{ Team.name | tojson }},
+          'start': {{ Configs.start | tojson }},
+          'end': {{ Configs.end | tojson }},
+          'themeSettings': {{ Configs.theme_settings | tojson }},
+          'eventSounds': [
+            "/themes/core/static/sounds/notification.webm",
+            "/themes/core/static/sounds/notification.mp3",
+          ],
+      }
+  </script>
+
+  {{ Configs.theme_header }}
+</head>
+<body>
+<div id="dynamic-bg">
+  <canvas id="matrix-canvas" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0; transition: opacity 0.5s ease;"></canvas>
+  <div id="vanta-container" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0; transition: opacity 0.5s ease;"></div>
+  <div id="particles-container" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0; transition: opacity 0.5s ease;"></div>
+  <div id="glow-container" class="bg-cursor-glow" style="display: none; opacity: 0; transition: opacity 0.5s ease;"></div>
+</div>
+{% include "components/navbar.html" %}
+
+<main id="ai-main-content" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; padding: 0 !important; margin: 0 !important;">
+  <!-- Mobile Header (Visible only on small screens) -->
+  <div class="d-md-none d-flex align-items-center justify-content-between p-3" style="border-bottom: 1px solid rgba(150,150,150,0.15);">
+    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#ai-sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+    <span class="fw-bold">{{ Configs.ctf_name }}</span>
+    <div style="width: 30px;"></div> <!-- spacer -->
+  </div>
+
+  <!-- Scrollable Content -->
+  <div class="glowing-frame" style="flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; background: transparent; display: flex; flex-direction: column;">
+    <div style="flex: 1 0 auto; width: 100%; padding-bottom: 2rem;">
+      {% block content %}
+      {% endblock %}
+    </div>
+      
+      <!-- Global Auth Modals -->
+      {% if not authed() %}
+      <div class="modal fade" id="authLoginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+          <div class="modal-content auth-modal-content">
+            <div class="modal-body p-4 p-md-5 position-relative">
+              <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+              
+              <div class="text-center mb-4 mt-2">
+                  <img src="/files/aab6223e4629c082f73cbcfd41fd16d4/login.png" alt="PAF Logos" style="max-height: 80px; margin-bottom: 1rem;">
+                  <h4 class="fw-bold text-white mb-1" style="letter-spacing: 1px;">PHILIPPINE AIR FORCE</h4>
+                  <div class="small fw-bold text-uppercase" style="color: #3b82f6; letter-spacing: 2px;">Cyber Security Platform</div>
+              </div>
+              
+              <div style="border-bottom: 1px dashed rgba(150,150,150,0.3); margin-bottom: 1.5rem;"></div>
+              
+              <h5 class="text-center text-white fw-bold mb-4">Sign In to Account</h5>
+              
+              {% if integrations.mlc() %}
+                <a class="btn w-100 mb-4" href="{{ url_for('auth.oauth_login') }}" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 6px; font-weight: 600;">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login with Major League Cyber
+                </a>
+                <div style="border-bottom: 1px dashed rgba(150,150,150,0.3); margin-bottom: 1.5rem;"></div>
+              {% endif %}
+              
+              <div class="w-100">
+                {% with form = Forms.auth.LoginForm() %}
+                  <form method="post" action="{{ url_for('auth.login') }}" accept-charset="utf-8" class="w-100">
+                    <div class="mb-3 text-start">
+                        <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">User Name or Email</label>
+                        {{ form.name(class="form-control w-100", autocomplete="username email", placeholder="Username or email", style="padding: 10px 14px; border-radius: 6px;") }}
+                    </div>
+                    <div class="mb-4 text-start">
+                        <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">Password</label>
+                        {{ form.password(class="form-control w-100", autocomplete="current-password", placeholder="Password", style="padding: 10px 14px; border-radius: 6px;") }}
+                    </div>
+                    <div>
+                        {{ form.submit(class="btn w-100 fw-bold text-white text-uppercase", value="Sign In", style="background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: none; padding: 12px; border-radius: 6px; letter-spacing: 1px;") }}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#authResetModal" data-bs-dismiss="modal" style="color: #3b82f6; text-decoration: none; font-size: 0.85rem;">Forgot your password?</a>
+                    </div>
+                    {% if registration_visible() %}
+                    <div class="text-center mt-2">
+                        <span class="text-muted small">Don't have an account?</span>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#authRegisterModal" data-bs-dismiss="modal" style="color: #3b82f6; text-decoration: none; font-size: 0.85rem;">Sign up</a>
+                    </div>
+                    {% endif %}
+                    {{ form.nonce() }}
+                  </form>
+                {% endwith %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="authRegisterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+          <div class="modal-content auth-modal-content">
+            <div class="modal-body p-4 p-md-5 position-relative">
+              <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+              
+              <div class="text-center mb-4 mt-2">
+                  <img src="/files/aab6223e4629c082f73cbcfd41fd16d4/login.png" alt="PAF Logos" style="max-height: 80px; margin-bottom: 1rem;">
+                  <h4 class="fw-bold text-white mb-1" style="letter-spacing: 1px;">PHILIPPINE AIR FORCE</h4>
+                  <div class="small fw-bold text-uppercase" style="color: #3b82f6; letter-spacing: 2px;">Cyber Security Platform</div>
+              </div>
+              
+              <div style="border-bottom: 1px dashed rgba(150,150,150,0.3); margin-bottom: 1.5rem;"></div>
+              
+              <h5 class="text-center text-white fw-bold mb-4">Create an Account</h5>
+              
+              {% if integrations.mlc() %}
+                <a class="btn w-100 mb-4" href="{{ url_for('auth.oauth_login') }}" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 6px; font-weight: 600;">
+                  <i class="fas fa-sign-in-alt me-2"></i>Login with Major League Cyber
+                </a>
+                <div style="border-bottom: 1px dashed rgba(150,150,150,0.3); margin-bottom: 1.5rem;"></div>
+              {% endif %}
+              
+              <div class="w-100 custom-fields-wrapper">
+                {% with form = Forms.auth.RegistrationForm() %}
+                  {% from "macros/forms.html" import render_extra_fields %}
+                  <form method="post" action="{{ url_for('auth.register') }}" accept-charset="utf-8" role="form" class="w-100">
+                    <div class="mb-3 text-start">
+                        <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">Username</label>
+                        {{ form.name(class="form-control w-100", autocomplete="username", placeholder="Username (Public ID)", style="padding: 10px 14px; border-radius: 6px;") }}
+                    </div>
+                    <div class="mb-3 text-start">
+                        <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">Email Address</label>
+                        {{ form.email(class="form-control w-100", autocomplete="email", placeholder="Email address (Private)", style="padding: 10px 14px; border-radius: 6px;") }}
+                    </div>
+                    <div class="mb-4 text-start">
+                        <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">Password</label>
+                        {{ form.password(class="form-control w-100", autocomplete="new-password", placeholder="Password", style="padding: 10px 14px; border-radius: 6px;") }}
+                    </div>
+                    
+                    <div class="mb-3 text-start">
+                        {{ render_extra_fields(form.extra) }}
+                    </div>
+
+                    {{ form.nonce() }}
+                    <div>
+                        {{ form.submit(class="btn w-100 fw-bold text-white text-uppercase", value="Register", style="background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: none; padding: 12px; border-radius: 6px; letter-spacing: 1px;") }}
+                    </div>
+
+                    {% if Configs.tos_or_privacy %}
+                      <div class="text-center mt-3 mb-2">
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                          {% trans trimmed privacy_link=Configs.privacy_link, tos_link=Configs.tos_link %}
+                          By registering, you agree to the
+                          <a href="{{ privacy_link }}" target="_blank" style="color: #38bdf8;">privacy policy</a>
+                          and <a href="{{ tos_link }}" target="_blank" style="color: #38bdf8;">terms of service</a>
+                          {% endtrans %}
+                        </small>
+                      </div>
+                    {% endif %}
+
+                    <div class="text-center mt-3">
+                        <span class="text-muted small">Already have an account?</span>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#authLoginModal" data-bs-dismiss="modal" style="color: #3b82f6; text-decoration: none; font-size: 0.85rem;">Sign in</a>
+                    </div>
+                  </form>
+                {% endwith %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal fade" id="authResetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+          <div class="modal-content auth-modal-content">
+            <div class="modal-body p-4 p-md-5 position-relative">
+              <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+              
+              <div class="text-center mb-4 mt-2">
+                  <img src="/files/aab6223e4629c082f73cbcfd41fd16d4/login.png" alt="PAF Logos" style="max-height: 80px; margin-bottom: 1rem;">
+                  <h4 class="fw-bold text-white mb-1" style="letter-spacing: 1px;">PHILIPPINE AIR FORCE</h4>
+                  <div class="small fw-bold text-uppercase" style="color: #3b82f6; letter-spacing: 2px;">Cyber Security Platform</div>
+              </div>
+              
+              <div style="border-bottom: 1px dashed rgba(150,150,150,0.3); margin-bottom: 1.5rem;"></div>
+              
+              <h5 class="text-center text-white fw-bold mb-3">Reset Password</h5>
+              
+              {% if not Configs.mail_server and not Configs.mailgun_api_key %}
+                <div class="alert alert-danger text-center small fw-semibold" role="alert" style="border-radius: 6px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5;">
+                  <i class="fas fa-exclamation-triangle me-2"></i>Email has not been configured so password resets are not supported. Contact a local organizer to have your password reset.
+                </div>
+              {% else %}
+                <p class="text-center small mb-4 opacity-75 text-white" style="line-height: 1.5;">
+                  Please provide the email address associated with your account below.
+                </p>
+                
+                <div class="w-100">
+                  {% with form = Forms.auth.ResetPasswordRequestForm() %}
+                    <form method="post" action="{{ url_for('auth.reset_password') }}" accept-charset="utf-8" class="w-100">
+                      <div class="mb-4 text-start">
+                          <label class="form-label text-white fw-bold small text-uppercase mb-1" style="font-size: 0.75rem;">Email Address</label>
+                          {{ form.email(class="form-control w-100", placeholder="Email Address", style="padding: 10px 14px; border-radius: 6px;") }}
+                      </div>
+                      <div>
+                          {{ form.submit(class="btn w-100 fw-bold text-white text-uppercase", value="Submit", style="background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: none; padding: 12px; border-radius: 6px; letter-spacing: 1px;") }}
+                      </div>
+                      <div class="text-center mt-3">
+                          <span class="text-muted small">Remember your password?</span>
+                          <a href="#" data-bs-toggle="modal" data-bs-target="#authLoginModal" data-bs-dismiss="modal" style="color: #3b82f6; text-decoration: none; font-size: 0.85rem;">Sign in</a>
+                      </div>
+                      {{ form.nonce() }}
+                    </form>
+                  {% endwith %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- Floating Scroll To Top Button (Vanilla JS) -->
+  <div id="ai-top-btn" style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1050; opacity: 0; visibility: hidden; transition: all 0.3s ease; transform: translateY(10px);">
+    <button onclick="document.querySelector('.glowing-frame').scrollTo({top: 0, behavior: 'smooth'})" 
+            class="btn d-flex flex-column align-items-center justify-content-center shadow-lg" 
+            style="width: 60px; height: 60px; border-radius: 50%; background: #0f172a; border: 1px solid rgba(59, 130, 246, 0.5); color: #38bdf8; backdrop-filter: blur(8px);">
+      <i class="fas fa-arrow-up fs-5 mb-1" style="margin-top: 2px;"></i>
+      <span style="font-size: 0.6rem; font-weight: 800; letter-spacing: 1px;">TOP</span>
+    </button>
+  </div>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const scrollContainer = document.querySelector('.glowing-frame');
+      const topBtn = document.getElementById('ai-top-btn');
+      if (scrollContainer && topBtn) {
+        scrollContainer.addEventListener('scroll', function() {
+          if (scrollContainer.scrollTop > 300) {
+            topBtn.style.visibility = 'visible';
+            topBtn.style.opacity = '1';
+            topBtn.style.transform = 'translateY(0)';
+          } else {
+            topBtn.style.opacity = '0';
+            topBtn.style.transform = 'translateY(10px)';
+            setTimeout(() => { if(scrollContainer.scrollTop <= 300) topBtn.style.visibility = 'hidden'; }, 300);
+          }
+        });
+      }
+    });
+  </script>
+</main>
+
+{% include "components/snackbar.html" %}
+{% include "components/notifications.html" %}
+
+{% block scripts %}
+  {{ Assets.js("assets/js/page.js") }}
+{% endblock %}
+
+{{ Plugins.scripts }}
+
+<!-- Dynamic Background Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const BackgroundManager = {
+    effects: ['particles', 'vanta', 'matrix', 'glow', 'off'],
+    names: {
+      'particles': 'Network Particles',
+      'vanta': 'Vanta 3D Net',
+      'matrix': 'Matrix Rain',
+      'glow': 'Tactical Cursor Glow',
+      'off': 'Background Disabled'
+    },
+    currentIdx: 0,
+    activeVanta: null,
+    matrixInterval: null,
+    
+    init: function() {
+      let saved = localStorage.getItem('bgEffect');
+      if(saved && this.effects.includes(saved)) {
+        this.currentIdx = this.effects.indexOf(saved);
+      } else if (localStorage.getItem('animationsEnabled') === 'false') {
+        this.currentIdx = 4; // off
+      }
+      this.apply();
+
+      // Mouse tracker for Glow
+      document.addEventListener('mousemove', (e) => {
+        if(this.effects[this.currentIdx] === 'glow') {
+          const glow = document.getElementById('glow-container');
+          glow.style.setProperty('--mouse-x', `${e.clientX}px`);
+          glow.style.setProperty('--mouse-y', `${e.clientY}px`);
+        }
+      });
+
+      const animBtn = document.getElementById('animation-switch');
+      if(animBtn) {
+        animBtn.addEventListener('click', () => {
+          this.currentIdx = (this.currentIdx + 1) % this.effects.length;
+          this.apply();
+          this.showToast();
+        });
+      }
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === "data-bs-theme") {
+            this.apply();
+          }
+        });
+      });
+      observer.observe(document.documentElement, { attributes: true });
+    },
+    
+    clearAll: function() {
+      ['particles-container', 'vanta-container', 'matrix-canvas', 'glow-container'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.opacity = '0';
+        setTimeout(() => { el.style.display = 'none'; }, 300);
+      });
+      
+      if (window.pJSDom && window.pJSDom.length > 0) {
+        window.pJSDom[0].pJS.fn.vendors.destroypJS();
+        window.pJSDom = [];
+      }
+      if (this.activeVanta) {
+        this.activeVanta.destroy();
+        this.activeVanta = null;
+      }
+      if (this.matrixInterval) {
+        clearInterval(this.matrixInterval);
+        this.matrixInterval = null;
+      }
+    },
+    
+    apply: function() {
+      this.clearAll();
+      const effect = this.effects[this.currentIdx];
+      localStorage.setItem('bgEffect', effect);
+      
+      const animBtn = document.getElementById('animation-switch');
+      if(animBtn) {
+        if(effect === 'off') {
+          animBtn.classList.add('opacity-50', 'text-danger');
+          animBtn.classList.remove('text-primary');
+        } else {
+          animBtn.classList.remove('opacity-50', 'text-danger');
+          animBtn.classList.add('text-primary');
+        }
+      }
+      
+      const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+      
+      // Delay mounting to allow fade out
+      setTimeout(() => {
+        if(effect === 'particles') {
+          const el = document.getElementById('particles-container');
+          el.style.display = 'block';
+          setTimeout(() => el.style.opacity = '1', 50);
+          const pColor = isDark ? "#3b82f6" : "#64748b"; 
+          const lColor = isDark ? "#1d4ed8" : "#94a3b8";
+          particlesJS("particles-container", {
+            "particles": {
+              "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
+              "color": { "value": pColor },
+              "shape": { "type": "circle" },
+              "opacity": { "value": 0.5 },
+              "size": { "value": 3, "random": true },
+              "line_linked": { "enable": true, "distance": 150, "color": lColor, "opacity": 0.4, "width": 1.5 },
+              "move": { "enable": true, "speed": 1.5, "direction": "none", "random": true, "out_mode": "out" }
+            },
+            "interactivity": {
+              "detect_on": "window",
+              "events": {
+                "onhover": { "enable": true, "mode": "grab" },
+                "onclick": { "enable": true, "mode": "push" },
+                "resize": true
+              },
+              "modes": {
+                "grab": { "distance": 140, "line_linked": { "opacity": 0.8 } },
+                "push": { "particles_nb": 3 }
+              }
+            },
+            "retina_detect": true
+          });
+        } else if(effect === 'vanta') {
+          const el = document.getElementById('vanta-container');
+          el.style.display = 'block';
+          setTimeout(() => el.style.opacity = '1', 50);
+          this.activeVanta = VANTA.NET({
+            el: "#vanta-container",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: isDark ? 0x3b82f6 : 0x64748b,
+            backgroundColor: isDark ? 0x0a0f1d : 0xf1f5f9,
+            points: 12.00,
+            maxDistance: 22.00,
+            spacing: 18.00
+          });
+        } else if(effect === 'matrix') {
+          const el = document.getElementById('matrix-canvas');
+          el.style.display = 'block';
+          setTimeout(() => el.style.opacity = '1', 50);
+          this.startMatrix(isDark);
+        } else if(effect === 'glow') {
+          const el = document.getElementById('glow-container');
+          el.style.display = 'block';
+          setTimeout(() => el.style.opacity = '1', 50);
+        }
+      }, 350);
+    },
+    
+    startMatrix: function(isDark) {
+      const canvas = document.getElementById('matrix-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+      chars = chars.split('');
+      const fontSize = 14;
+      const columns = canvas.width / fontSize;
+      const drops = [];
+      for(let x = 0; x < columns; x++) drops[x] = 1;
+      
+      this.matrixInterval = setInterval(() => {
+        ctx.fillStyle = isDark ? 'rgba(11, 17, 32, 0.05)' : 'rgba(248, 250, 252, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = isDark ? '#3b82f6' : '#94a3b8';
+        ctx.font = fontSize + 'px monospace';
+        
+        for(let i = 0; i < drops.length; i++) {
+          const text = chars[Math.floor(Math.random() * chars.length)];
+          ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+          
+          if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i]++;
+        }
+      }, 33);
+      
+      window.onresize = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      };
+    },
+    
+    showToast: function() {
+      const name = this.names[this.effects[this.currentIdx]];
+      let t = document.createElement('div');
+      t.innerHTML = `<div style="position:fixed; bottom:20px; right:20px; background:rgba(17,24,39,0.95); color:white; padding:12px 20px; border-radius:8px; border:1px solid #3b82f6; z-index:9999; box-shadow:0 4px 15px rgba(0,0,0,0.5); font-size:0.9rem; animation: fadeinout 2.5s ease forwards;">
+        <i class="fas fa-magic me-2 text-primary"></i> Effect: <strong>${name}</strong>
+      </div>
+      <style>
+        @keyframes fadeinout {
+          0% { opacity: 0; transform: translateY(10px); }
+          15% { opacity: 1; transform: translateY(0); }
+          85% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(10px); }
+        }
+      </style>`;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2600);
+    }
+  };
+  
+  BackgroundManager.init();
+});
+</script>
+
+{{ Configs.theme_footer }}
+</body>
+</html>

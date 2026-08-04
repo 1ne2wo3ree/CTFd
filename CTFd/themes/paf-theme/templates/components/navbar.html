@@ -1,0 +1,213 @@
+<aside id="ai-sidebar" class="collapse d-md-flex flex-column" style="
+    width: 260px;
+    height: 100vh;
+    background: rgba(11, 17, 32, 0.95);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    padding: 1rem 0.75rem;
+    position: relative;
+    z-index: 1040;
+    transition: all 0.3s;
+">
+  <!-- Brand & New Chat Button -->
+  <div class="mb-4 px-2">
+    <a href="{{ url_for('views.static_html', route='/') }}" class="d-flex align-items-center gap-2 text-decoration-none mb-4">
+      {% if Configs.ctf_logo %}
+        <img src="{{ url_for('views.files', path=Configs.ctf_logo) }}" class="breathing-logo" style="height: 48px; width: auto; object-fit: contain;">
+      {% endif %}
+      <span class="fw-bold sidebar-brand-text" style="font-size: 1.2rem; letter-spacing: 0.5px; line-height: 1.2;">
+        JuiceShop Security<br>
+        <span style="color: #38bdf8; font-size: 0.9rem;">CTF 2026</span>
+      </span>
+    </a>
+    
+    {% if authed() %}
+    <a href="{{ url_for('challenges.listing') }}" class="btn w-100 d-flex justify-content-between align-items-center" style="
+        background: #1e3a8a; border: 1px solid rgba(59,130,246,0.3); color: white;
+        padding: 0.6rem 1rem; border-radius: 0.5rem; font-weight: 500;
+        box-shadow: {% if request.endpoint == 'challenges.listing' %}0 0 15px rgba(59,130,246,0.5){% else %}none{% endif %};
+        {% if request.endpoint == 'challenges.listing' %}border-color: #38bdf8;{% endif %}">
+      <span><i class="fas fa-plus me-2"></i> Challenges</span>
+      <i class="fas fa-flag text-info" style="font-size: 0.85rem;"></i>
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Navigation List -->
+  <div class="sidebar-nav-list flex-grow-1 overflow-y-auto px-2" style="font-size: 0.9rem;">
+    {% if authed() %}
+    <div class="text-muted small fw-bold mb-2 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Dashboard</div>
+    
+    {% if Configs.account_visibility != 'admins' and Configs.score_visibility != 'admins' %}
+    <a href="{{ url_for('scoreboard.listing') }}" class="sidebar-link {% if request.endpoint == 'scoreboard.listing' %}active{% endif %}">
+      <i class="fas fa-trophy"></i> Scoreboard
+    </a>
+    {% endif %}
+
+    {% if Configs.account_visibility != 'admins' %}
+    <a href="{{ url_for('users.listing') }}" class="sidebar-link {% if request.endpoint == 'users.listing' or request.endpoint == 'users.public' %}active{% endif %}">
+      <i class="fas fa-users"></i> Users
+    </a>
+    {% if Configs.user_mode == 'teams' %}
+    <a href="{{ url_for('teams.listing') }}" class="sidebar-link {% if request.endpoint == 'teams.listing' or request.endpoint == 'teams.public' %}active{% endif %}">
+      <i class="fas fa-user-shield"></i> Teams
+    </a>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+
+    <div class="text-muted small fw-bold mb-2 mt-4 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Resources</div>
+    {% for page in Plugins.user_menu_pages %}
+    <a href="{{ page.route }}" {% if page.link_target %}target="{{ page.link_target }}"{% endif %} class="sidebar-link {% if request.path == page.route %}active{% endif %}">
+      {% set ptitle = page.title | lower %}
+      {% if 'faq' in ptitle or 'help' in ptitle or 'question' in ptitle %}
+        <i class="fas fa-question-circle"></i>
+      {% elif 'rule' in ptitle or 'term' in ptitle %}
+        <i class="fas fa-gavel"></i>
+      {% elif 'news' in ptitle or 'update' in ptitle %}
+        <i class="fas fa-newspaper"></i>
+      {% else %}
+        <i class="fas fa-file-alt"></i>
+      {% endif %}
+      {{ page.title }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Bottom Profile Section -->
+  <div class="mt-auto px-2 pt-3" style="border-top: 1px solid rgba(255,255,255,0.05);">
+    {% if authed() %}
+      {% if is_admin() %}
+      <a href="{{ url_for('admin.view') }}" class="sidebar-link text-warning">
+        <i class="fas fa-wrench"></i> Admin Panel
+      </a>
+      {% endif %}
+      <a href="{{ url_for('views.notifications') }}" class="sidebar-link d-flex justify-content-between align-items-center {% if request.endpoint == 'views.notifications' %}active{% endif %}">
+        <span><i class="fas fa-bell"></i> Notifications</span>
+        <span x-data x-show="$store.unread_count > 0" x-text="$store.unread_count" class="badge bg-danger rounded-pill"></span>
+      </a>
+      <a href="{{ url_for('views.settings') }}" class="sidebar-link {% if request.endpoint == 'views.settings' %}active{% endif %}">
+        <i class="fas fa-cog"></i> Settings
+      </a>
+      
+      <div class="dropdown mt-2">
+        <button class="btn w-100 d-flex align-items-center text-start sidebar-profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="
+            background: transparent; border: none; color: #cbd5e1; padding: 0.5rem; border-radius: 0.5rem;">
+          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; color: white;">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="flex-grow-1 text-truncate" style="font-weight: 500; font-size: 0.9rem;">
+            My Profile
+          </div>
+          <i class="fas fa-ellipsis-h text-muted"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark shadow" style="width: 100%; border-radius: 0.5rem; background: #1e293b;">
+          <li><a class="dropdown-item" href="{{ url_for('users.private') }}"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
+          {% if Configs.user_mode == "teams" %}
+          <li><a class="dropdown-item" href="{{ url_for('teams.private') }}"><i class="fas fa-users me-2"></i> Team</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.1);"></li>
+          <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Log out</a></li>
+        </ul>
+      </div>
+
+    {% else %}
+      <button type="button" class="btn btn-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#authLoginModal" style="border-radius: 0.5rem; font-weight: 600;">Log in</button>
+      {% if registration_visible() %}
+      <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#authRegisterModal" style="border-radius: 0.5rem; color: #cbd5e1;">Sign up</button>
+      {% endif %}
+    {% endif %}
+    
+    <div class="d-flex justify-content-center mt-3 mb-3 gap-2">
+      <button class="theme-switch btn btn-sm text-muted" title="Toggle theme" style="background: rgba(255,255,255,0.05); border-radius: 0.5rem; width: 40px; height: 40px;">
+        <i class="fas fa-moon"></i>
+      </button>
+      <button id="animation-switch" class="btn btn-sm text-muted" title="Toggle background animation" style="background: rgba(255,255,255,0.05); border-radius: 0.5rem; width: 40px; height: 40px;">
+        <i class="fas fa-magic"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="mt-auto pt-3 text-center" style="border-top: 1px dashed rgba(150,150,150,0.15);">
+      <div class="small fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; color: #64748b; line-height: 1.4;">
+        Powered by<br>950th CEWW<br>Philippine Air Force
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes breathe {
+      0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(59,130,246,0.4)); }
+      50% { transform: scale(1.06); filter: drop-shadow(0 0 16px rgba(59,130,246,0.8)); }
+      100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(59,130,246,0.4)); }
+    }
+    .breathing-logo {
+      animation: breathe 3.5s ease-in-out infinite;
+      will-change: transform, filter;
+    }
+    .sidebar-brand-text {
+      color: #ffffff;
+      transition: color 0.3s;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      color: #94a3b8;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      margin-bottom: 2px;
+      transition: all 0.2s;
+    }
+    .sidebar-link i {
+      width: 24px;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+      text-align: center;
+    }
+    .sidebar-link:hover {
+      background: rgba(255,255,255,0.05);
+      color: #f1f5f9;
+    }
+    .sidebar-link.active {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border-left: 3px solid #38bdf8;
+      border-radius: 0 0.5rem 0.5rem 0;
+      font-weight: 600;
+    }
+    .sidebar-profile-btn:hover {
+      background: rgba(255,255,255,0.05) !important;
+    }
+    /* Mobile Collapse Behavior */
+    @media (max-width: 768px) {
+      #ai-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+      }
+      #ai-sidebar.collapse:not(.show) {
+        display: none !important;
+      }
+    }
+    html[data-bs-theme="light"] #ai-sidebar {
+      background: #f8fafc !important;
+      border-right: 1px solid rgba(0,0,0,0.05) !important;
+    }
+    html[data-bs-theme="light"] .sidebar-brand-text { color: #0f172a !important; }
+    html[data-bs-theme="light"] .sidebar-link { color: #475569 !important; }
+    html[data-bs-theme="light"] .sidebar-link:hover { background: rgba(0,0,0,0.05) !important; color: #0f172a !important; }
+    html[data-bs-theme="light"] .sidebar-link.active {
+      background: rgba(37, 99, 235, 0.1) !important;
+      color: #2563eb !important;
+      border-left-color: #2563eb !important;
+    }
+    html[data-bs-theme="light"] .sidebar-profile-btn { color: #0f172a !important; }
+    html[data-bs-theme="light"] .sidebar-profile-btn:hover { background: rgba(0,0,0,0.05) !important; }
+    html[data-bs-theme="light"] .dropdown-menu-dark { background: #ffffff !important; border: 1px solid rgba(0,0,0,0.1) !important; }
+    html[data-bs-theme="light"] .dropdown-menu-dark .dropdown-item { color: #0f172a !important; }
+    html[data-bs-theme="light"] .dropdown-menu-dark .dropdown-item:hover { background: rgba(0,0,0,0.05) !important; }
+    html[data-bs-theme="light"] .dropdown-menu-dark .dropdown-divider { border-color: rgba(0,0,0,0.05) !important; }
+  </style>
+</aside>

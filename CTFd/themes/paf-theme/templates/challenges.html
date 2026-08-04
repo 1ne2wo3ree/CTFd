@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+  <div class="text-center mb-4">
+    <h2 class="fw-bold mb-2">
+      {% trans %}Challenges{% endtrans %}
+    </h2>
+    <div class="mx-auto text-muted small">Select a challenge below to view details and submit flags.</div>
+  </div>
+  <div class="row">
+      <div class="col-md-12">
+        {% include "components/errors.html" %}
+      </div>
+    </div>
+
+    <div 
+      x-data="ChallengeBoard" 
+      @load-challenges.window="loadChallenges()" 
+      @load-challenge.window="loadChallenge($event.detail)"
+    >
+      <div
+          x-ref="challengeWindow" id="challenge-window" class="modal fade" tabindex="-1" role="dialog" x-data=""
+          x-html="$store.challenge.data.view"
+      ></div>
+
+      <div x-show="!loaded">
+        <div class="min-vh-50 d-flex align-items-center">
+          <div class="text-center w-100">
+            <i class="fas fa-circle-notch fa-spin fa-3x fa-fw spinner text-primary"></i>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="loaded" x-data="{ 
+        collapsed: JSON.parse(localStorage.getItem('pafms_collapsed_categories') || '{}'),
+        searchQuery: '',
+        filterMode: 'all',
+        difficultyFilter: 'all',
+        toggle(cat) { 
+          this.collapsed[cat] = !this.collapsed[cat]; 
+          localStorage.setItem('pafms_collapsed_categories', JSON.stringify(this.collapsed)); 
+        },
+        matches(c) {
+          const search = this.searchQuery.toLowerCase();
+          const matchSearch = c.name.toLowerCase().includes(search) || (c.category && c.category.toLowerCase().includes(search));
+          const matchFilter = this.filterMode === 'all' || (this.filterMode === 'solved' && c.solved_by_me) || (this.filterMode === 'unsolved' && !c.solved_by_me);
+          
+          let cDiff = 'locked';
+          if (c.name !== '???' && c.value > 0) {
+            if (c.value < 200) cDiff = 'easy';
+            else if (c.value <= 350) cDiff = 'medium';
+            else if (c.value <= 500) cDiff = 'hard';
+            else cDiff = 'extreme';
+          }
+          const matchDiff = this.difficultyFilter === 'all' || this.difficultyFilter === cDiff;
+          
+          return matchSearch && matchFilter && matchDiff;
+        }
+      }">
+        <!-- Dashboard Stat Boxes -->
+        <div class="row g-3 mb-5">
+          <div class="col-sm-6 col-lg-3">
+            <div class="tactical-stat-box stat-box-amber p-3 h-100 d-flex align-items-center justify-content-between shadow-sm">
+              <div>
+                <div class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Categories</div>
+                <div class="fs-4 fw-bolder mt-1" x-text="getCategories().length"></div>
+              </div>
+              <div class="p-3 rounded-circle d-flex align-items-center justify-content-center" style="background: rgba(249, 115, 22, 0.15); color: #f97316; width: 48px; height: 48px;">
+                <i class="fas fa-folder-open fs-5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="tactical-stat-box stat-box-cyan p-3 h-100 d-flex align-items-center justify-content-between shadow-sm">
+              <div>
+                <div class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Total Challenges</div>
+                <div class="fs-4 fw-bolder mt-1" x-text="getCategories().reduce((acc, cat) => acc + getChallenges(cat).length, 0)"></div>
+              </div>
+              <div class="p-3 rounded-circle d-flex align-items-center justify-content-center" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; width: 48px; height: 48px;">
+                <i class="fas fa-flag fs-5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="tactical-stat-box stat-box-emerald p-3 h-100 d-flex align-items-center justify-content-between shadow-sm">
+              <div>
+                <div class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Solved</div>
+                <div class="fs-4 fw-bolder mt-1 text-success" x-text="getCategories().reduce((acc, cat) => acc + getChallenges(cat).filter(c => c.solved_by_me).length, 0)"></div>
+              </div>
+              <div class="p-3 rounded-circle d-flex align-items-center justify-content-center" style="background: rgba(16, 185, 129, 0.15); color: #10b981; width: 48px; height: 48px;">
+                <i class="fas fa-check-circle fs-5"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="tactical-stat-box stat-box-purple p-3 h-100 d-flex align-items-center justify-content-between shadow-sm">
+              <div>
+                <div class="small text-muted fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">Platform Status</div>
+                <div class="fs-6 fw-bold mt-2 text-uppercase d-flex align-items-center gap-2" style="color: #a855f7;">
+                  <span class="d-inline-block rounded-circle bg-success" style="width: 8px; height: 8px; box-shadow: 0 0 8px #10b981;"></span>
+                  Online • CTF
+                </div>
+              </div>
+              <div class="p-3 rounded-circle d-flex align-items-center justify-content-center" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; width: 48px; height: 48px;">
+                <i class="fas fa-server fs-5"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tactical Search & Filter Bar -->
+        <div class="pafms-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-sm" style="position: relative; z-index: 1050;">
+          <div class="flex-grow-1 position-relative" style="max-width: 500px;">
+            <i class="fas fa-search position-absolute top-50 translate-middle-y text-muted ms-3"></i>
+            <input type="text" x-model="searchQuery" class="form-control px-5 py-2" placeholder="Search challenges by name or category..." style="border: 1px solid rgba(150,150,150,0.3); border-radius: 0.5rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='rgba(59,130,246,0.5)'" onblur="this.style.borderColor='rgba(150,150,150,0.3)'">
+          </div>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="btn-group shadow-sm">
+              <button @click="filterMode = 'all'" class="btn fw-bold px-3 py-1" :class="filterMode === 'all' ? 'btn-primary' : 'btn-outline-secondary'" style="font-size: 0.85rem; transition: all 0.2s;"><i class="fas fa-layer-group me-1"></i> All</button>
+              <button @click="filterMode = 'unsolved'" class="btn fw-bold px-3 py-1" :class="filterMode === 'unsolved' ? 'btn-primary' : 'btn-outline-secondary'" style="font-size: 0.85rem; transition: all 0.2s;"><i class="fas fa-flag me-1"></i> Unsolved</button>
+              <button @click="filterMode = 'solved'" class="btn fw-bold px-3 py-1" :class="filterMode === 'solved' ? 'btn-primary' : 'btn-outline-secondary'" style="font-size: 0.85rem; transition: all 0.2s;"><i class="fas fa-check-circle me-1"></i> Solved</button>
+            </div>
+            
+            <!-- Difficulty Dropdown -->
+            <div class="dropdown shadow-sm">
+              <button class="btn btn-outline-secondary dropdown-toggle fw-bold px-3 py-1" type="button" id="difficultyDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.85rem;">
+                <i class="fas fa-signal me-1"></i> 
+                <span x-text="difficultyFilter === 'all' ? 'Any Difficulty' : difficultyFilter.charAt(0).toUpperCase() + difficultyFilter.slice(1)"></span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="difficultyDropdown">
+                <li><a class="dropdown-item fw-bold" href="#" @click.prevent="difficultyFilter = 'all'">Any Difficulty</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item fw-bold" style="color: #10b981;" href="#" @click.prevent="difficultyFilter = 'easy'">Easy</a></li>
+                <li><a class="dropdown-item fw-bold" style="color: #f59e0b;" href="#" @click.prevent="difficultyFilter = 'medium'">Medium</a></li>
+                <li><a class="dropdown-item fw-bold" style="color: #ef4444;" href="#" @click.prevent="difficultyFilter = 'hard'">Hard</a></li>
+                <li><a class="dropdown-item fw-bold" style="color: #ec4899;" href="#" @click.prevent="difficultyFilter = 'extreme'">Extreme</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <template x-for="(category, idx) in getCategories().filter(cat => getChallenges(cat).some(c => matches(c)))" :key="idx">
+          <div class="pt-2">
+            <div @click="toggle(category)" class="tactical-category-header category-header mb-3 p-3 rounded-3 d-flex align-items-center justify-content-between shadow-sm">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge px-3 py-2 fw-bold text-uppercase" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; letter-spacing: 0.5px; font-size: 0.75rem;">
+                  <span x-text="getChallenges(category).length"></span> Challenges
+                </span>
+                <span class="badge px-3 py-2 fw-bold text-uppercase" :style="getChallenges(category).filter(c => c.solved_by_me).length > 0 ? 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981;' : 'background: rgba(150, 150, 150, 0.1); color: #9ca3af; border: 1px solid rgba(150, 150, 150, 0.3);'" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+                  <span x-text="getChallenges(category).filter(c => c.solved_by_me).length"></span> Solved
+                </span>
+                <h3 x-text="category" class="mb-0 fw-bold ms-1" style="letter-spacing: 0.02em; font-size: 1.15rem;"></h3>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <div class="p-2 rounded-circle d-flex align-items-center justify-content-center" :style="!collapsed[category] ? 'background: rgba(59, 130, 246, 0.15); color: #3b82f6;' : 'background: rgba(150, 150, 150, 0.1); color: #94a3b8;'" style="width: 36px; height: 36px;">
+                  <i class="fas fs-6 transition-transform" :class="collapsed[category] ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="category-challenges" x-show="!collapsed[category]" x-transition>
+              <div class="challenges-row row">
+                <template x-for="(c, idx) in getChallenges(category).filter(c => matches(c))" :key="c.id">
+                  <div class="col-sm-6 col-md-4 col-lg-3 my-3">
+                    <button
+                        class="tactical-challenge-card challenge-button btn w-100 h-100 p-0 text-start position-relative overflow-hidden shadow-sm"
+                        :class="[
+                          c.solved_by_me ? 'challenge-solved' : '',
+                          ...c.tags.map((tag) => `tag-${tag.value.replace(/ /g, '-')}`),
+                        ];"
+                        style="transition: all 0.2s ease; border-radius: 0.75rem;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.5)';" 
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--bs-box-shadow-sm)';"
+                        :value="c.id" @click="(c.name === '???' || c.value === 0 || c.tier_locked) ? alert('⚠️ Challenge Locked:\n\n' + (c.lock_reason || 'You must complete the required prerequisites before accessing this challenge.')) : loadChallenge(c.id)"
+                    >
+                      <!-- Status Banner -->
+                      <div class="w-100 py-1 px-3 d-flex justify-content-between align-items-center" :style="(c.name === '???' || c.value === 0 || c.tier_locked) ? 'background: rgba(245, 158, 11, 0.25); border-bottom: 1px solid rgba(245, 158, 11, 0.5);' : (c.solved_by_me ? 'background: rgba(16, 185, 129, 0.2); border-bottom: 1px solid rgba(16, 185, 129, 0.4);' : 'background: rgba(59, 130, 246, 0.15); border-bottom: 1px solid rgba(59, 130, 246, 0.3);')">
+                        <span class="fw-bold" :style="(c.name === '???' || c.value === 0 || c.tier_locked) ? 'color: #fbbf24; font-size: 0.68rem;' : (c.solved_by_me ? 'color: #34d399; font-size: 0.7rem;' : 'color: #3b82f6; font-size: 0.7rem;')" x-text="(c.name === '???' || c.value === 0) ? 'Locked' : (c.tier_locked ? ('Locked: ' + c.lock_reason) : (c.solved_by_me ? 'Solved' : 'Unsolved'))"></span>
+                        <i :class="(c.name === '???' || c.value === 0 || c.tier_locked) ? 'fas fa-lock text-warning' : (c.solved_by_me ? 'fas fa-check-circle text-success' : 'fas fa-flag text-primary')" style="font-size: 0.8rem;"></i>
+                      </div>
+
+                      <div class="challenge-inner p-3 d-flex flex-column justify-content-between" style="min-height: 115px;">
+                        <div>
+                          <p x-text="c.name" class="fw-bold mb-1 fs-6" style="line-height: 1.3;"></p>
+                          <!-- Dynamic Star Difficulty Rating -->
+                          <template x-if="c.name === '???' || c.value === 0">
+                            <div class="text-warning fw-bold small mb-3" style="font-size: 0.75rem;">
+                              <i class="fas fa-lock pe-1"></i> <span>Hidden Challenge</span>
+                            </div>
+                          </template>
+                          <template x-if="c.name !== '???' && c.value > 0">
+                            <div class="text-warning small mb-3" style="letter-spacing: 1px; font-size: 0.7rem;" x-text="'★'.repeat(c.value < 200 ? 1 : (c.value <= 300 ? 2 : (c.value <= 400 ? 3 : (c.value <= 450 ? 4 : (c.value <= 500 ? 5 : 6)))))"></div>
+                          </template>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2" style="border-top: 1px dashed rgba(150,150,150,0.2);">
+                          <div class="d-flex align-items-center gap-1">
+                            <span class="badge bg-dark border border-secondary text-light small px-2 py-1 fw-bold">
+                              <span x-text="(c.name === '???' || c.value === 0) ? '???' : c.value"></span> pts
+                            </span>
+                            <!-- Dynamic Difficulty Badge -->
+                            <span class="badge px-2 py-1 fw-bold" :style="(c.name === '???' || c.value === 0) ? 'background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b;' : (c.value < 200 ? 'background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981;' : (c.value <= 350 ? 'background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b;' : (c.value <= 500 ? 'background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444;' : 'background: rgba(236, 72, 153, 0.2); color: #ec4899; border: 1px solid #ec4899;')))" style="font-size: 0.7rem;" x-text="(c.name === '???' || c.value === 0) ? 'Locked' : (c.value < 200 ? 'Easy' : (c.value <= 350 ? 'Medium' : (c.value <= 500 ? 'Hard' : 'Extreme')))">
+                            </span>
+                          </div>
+                          <span class="small text-muted fw-semibold text-truncate text-end" style="font-size: 0.65rem; max-width: 140px; letter-spacing: 0.5px;" x-text="c.module_name ? c.module_name.toUpperCase() : 'GENERAL CTF'" :title="c.module_name || 'General CTF'"></span>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ Assets.js("assets/js/challenges.js") }}
+{% endblock %}
