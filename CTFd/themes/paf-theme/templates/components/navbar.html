@@ -128,6 +128,80 @@
       </button>
     </div>
 
+    <!-- CTF Timer Widget -->
+    <div class="mt-2 mb-2 px-2" x-data="ctfTimerWidget()" x-init="startTimer()" x-show="isVisible" style="display: none;">
+      <div class="p-2 rounded d-flex flex-column align-items-center justify-content-center" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+        <div class="small fw-bold text-uppercase mb-1" style="color: #94a3b8; font-size: 0.65rem; letter-spacing: 1.5px;" x-text="statusLabel">STATUS</div>
+        <div class="fw-bold" x-bind:style="colorStyle" style="font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; letter-spacing: 1px; text-shadow: 0 0 5px rgba(0,0,0,0.8);" x-text="timeString">--:--:--</div>
+      </div>
+    </div>
+    
+    <script>
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('ctfTimerWidget', () => ({
+          start: window.init && window.init.start ? window.init.start * 1000 : null,
+          end: window.init && window.init.end ? window.init.end * 1000 : null,
+          freeze: window.init && window.init.freeze ? window.init.freeze * 1000 : null,
+          statusLabel: 'LOADING...',
+          timeString: '--:--:--',
+          colorStyle: 'color: #38bdf8;',
+          isVisible: false,
+          interval: null,
+          
+          startTimer() {
+            if (!this.start && !this.end && !this.freeze) return;
+            this.isVisible = true;
+            this.updateTime();
+            this.interval = setInterval(() => this.updateTime(), 1000);
+          },
+          
+          updateTime() {
+            const now = new Date().getTime();
+            let target = null;
+            
+            if (this.start && now < this.start) {
+              this.statusLabel = 'STARTS IN';
+              this.colorStyle = 'color: #38bdf8; text-shadow: 0 0 8px rgba(56,189,248,0.5);';
+              target = this.start;
+            } else if (this.end && now < this.end) {
+              if (this.freeze && now < this.freeze) {
+                  this.statusLabel = 'FREEZES IN';
+                  this.colorStyle = 'color: #c084fc; text-shadow: 0 0 8px rgba(192,132,252,0.5);';
+                  target = this.freeze;
+              } else {
+                  this.statusLabel = 'ENDS IN';
+                  this.colorStyle = 'color: #fbbf24; text-shadow: 0 0 8px rgba(251,191,36,0.5);';
+                  target = this.end;
+              }
+            } else if (this.end && now >= this.end) {
+              this.statusLabel = 'STATUS';
+              this.colorStyle = 'color: #ef4444; text-shadow: 0 0 8px rgba(239,68,68,0.5);';
+              this.timeString = 'ENDED';
+              clearInterval(this.interval);
+              return;
+            } else {
+              this.statusLabel = 'STATUS';
+              this.colorStyle = 'color: #38bdf8; text-shadow: 0 0 8px rgba(56,189,248,0.5);';
+              this.timeString = 'ACTIVE';
+              return;
+            }
+            
+            const distance = target - now;
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+              this.timeString = `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+            } else {
+              this.timeString = `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+            }
+          }
+        }));
+      });
+    </script>
+
     <!-- Sidebar Footer -->
     <div class="mt-auto pt-3 text-center" style="border-top: 1px dashed rgba(150,150,150,0.15);">
       <div class="small fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px; color: #64748b; line-height: 1.4;">
